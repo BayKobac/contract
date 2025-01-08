@@ -3,61 +3,43 @@ pragma solidity ^0.8.18;
 
 contract WordGuessingGame {
     address public owner;
-    bytes32 private answerHash;       // 정답의 해시 값
-    uint256 public prizePool;         // 상금 풀
+    string private answer;
+    uint256 public prizePool;
     bool public gameEnded;
 
     event WordGuessed(address indexed player, string guess, bool isCorrect);
-    event GameRestarted(address indexed owner, bytes32 newAnswerHash);
+    event GameStarted(string newAnswer);
 
     constructor() {
         owner = msg.sender;
-        answerHash = keccak256(abi.encodePacked("apple")); // 초기 정답
+        answer = "apple";
+        gameEnded = false;
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can perform this action");
-        _;
+    function setAnswer(string memory newAnswer) external {
+        require(msg.sender == owner, "Only owner can set the answer");
+        answer = newAnswer;
+        gameEnded = false;
+        emit GameStarted(newAnswer); // 새로운 게임 시작 이벤트
     }
 
-    function setAnswer(string memory newAnswer) external onlyOwner {
-        require(bytes(newAnswer).length > 0, "Answer cannot be empty");
-        answerHash = keccak256(abi.encodePacked(newAnswer));
-        gameEnded = false; // 새 게임 시작
-        emit GameRestarted(msg.sender, answerHash);
-    }
-
-    function guessWord(string calldata guessedWord) external payable {
+    function deposit() external payable {
         require(!gameEnded, "Game has already ended");
-        require(msg.value == 0.001 ether, "You must deposit 0.001 ETH to guess");
-        require(bytes(guessedWord).length > 0, "Guess cannot be empty");
-
         prizePool += msg.value;
+    }
 
-        bool isCorrect = keccak256(abi.encodePacked(guessedWord)) == answerHash;
+    function guessWord(string calldata guessedWord) external {
+        require(!gameEnded, "Game has already ended");
+
+        bool isCorrect = keccak256(abi.encodePacked(guessedWord)) 
+            == keccak256(abi.encodePacked(answer));
 
         emit WordGuessed(msg.sender, guessedWord, isCorrect);
 
         if (isCorrect) {
-            uint256 prize = prizePool;
+            payable(msg.sender).transfer(prizePool);
             prizePool = 0;
             gameEnded = true;
-
-            (bool success, ) = msg.sender.call{value: prize}("");
-            require(success, "Transfer failed");
         }
-    }
-
-    function getGameState() external view returns (uint256, bool) {
-        return (prizePool, gameEnded);
-    }
-
-    function withdrawAll() external onlyOwner {
-        require(gameEnded, "Game is still active");
-        uint256 balance = address(this).balance;
-        require(balance > 0, "No balance to withdraw");
-
-        (bool success, ) = owner.call{value: balance}("");
-        require(success, "Withdrawal failed");
     }
 }
