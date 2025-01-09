@@ -12,7 +12,7 @@ contract WordGuessingGame {
 
     constructor() {
         owner = msg.sender;
-        _restartGame("apple"); // 초기 정답 
+        _restartGame("block"); // 초기 정답 
     }
 
     modifier onlyOwner() {
