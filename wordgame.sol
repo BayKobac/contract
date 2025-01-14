@@ -12,7 +12,7 @@ contract WordGuessingGame {
 
     constructor() {
         owner = msg.sender;
-        _restartGame("block"); // 초기 정답 
+        gameEnded = true;
     }
 
     modifier onlyOwner() {
@@ -33,7 +33,6 @@ contract WordGuessingGame {
     } //owner만 호출가능 game restart 하라고
 
     function guessWord(string calldata guessedWord) external payable {
-        require(!gameEnded, "Game has already ended");
         require(msg.value == 0.001 ether, "You must deposit 0.001 ETH to guess");
         require(bytes(guessedWord).length > 0, "Guess cannot be empty");
 
